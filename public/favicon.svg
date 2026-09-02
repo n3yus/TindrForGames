@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="8" fill="#09090b"/>
+  <!-- Gamepad body -->
+  <rect x="6" y="12" width="20" height="12" rx="4" fill="#a855f7" opacity="0.9"/>
+  <!-- D-pad -->
+  <rect x="8" y="16" width="2" height="5" rx="1" fill="white" opacity="0.8"/>
+  <rect x="6.5" y="17.5" width="5" height="2" rx="1" fill="white" opacity="0.8"/>
+  <!-- Buttons -->
+  <circle cx="22" cy="16.5" r="1.5" fill="#ec4899"/>
+  <circle cx="24" cy="18" r="1.5" fill="#22d3ee"/>
+  <!-- Heart top-right -->
+  <path d="M21 7 l1.5 1.5 1.5-1.5 a1 1 0 0 1 1.5 1.4 l-1.5 1.5 1.5 1.5 a1 1 0 0 1 -1.5 1.4 L 21 11 l-2 2 a1 1 0 0 1 -1.5 -1.4 l 1.5 -1.5 -1.5 -1.5 a1 1 0 0 1 1.5 -1.4 Z"
+        fill="#ec4899"/>
+</svg>

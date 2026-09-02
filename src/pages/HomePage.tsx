@@ -1,0 +1,150 @@
+import { useState } from "react";
+import { useGamePool } from "../hooks/useGamePool";
+import { SwipeCard } from "../components/SwipeCard";
+import { FilterPanel } from "../components/FilterPanel";
+import { SkeletonCard } from "../components/SkeletonCard";
+import { EmptyState } from "../components/EmptyState";
+import { ApiKeyBanner } from "../components/ApiKeyBanner";
+import { SlidersHorizontal } from "lucide-react";
+import { cn } from "../lib/cn";
+
+/**
+ * Swipe-Stapel-View.
+ * Zeigt das aktuelle Spiel (Drag-fähig) und eine Vorschau der nächsten Karte im Hintergrund.
+ */
+export function HomePage() {
+  const {
+    current,
+    next,
+    status,
+    error,
+    filters,
+    setFilters,
+    handleSwipe,
+    retry,
+  } = useGamePool();
+
+  const [filterOpen, setFilterOpen] = useState(false);
+
+  const showSkeleton = status === "loading" || (status === "idle" && !current);
+  const showError = status === "error";
+  const showExhausted = status === "exhausted" && !current;
+  const showIdle = status === "idle" && !current;
+  const showCard = !!current;
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-5rem)] h-[calc(100dvh-5rem)] relative">
+      {/* API-Key Warnung */}
+      <ApiKeyBanner />
+
+      {/* Header */}
+      <header className="flex items-center justify-between px-4 pt-4 pb-2">
+        <h1 className="text-xl font-extrabold tracking-tight">
+          <span className="bg-gradient-to-r from-neon-purple via-neon-pink to-neon-cyan bg-clip-text text-transparent">
+            TindrForGames
+          </span>
+        </h1>
+        <button
+          onClick={() => setFilterOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border border-zinc-700 hover:border-neon-cyan hover:text-neon-cyan text-zinc-300"
+        >
+          <SlidersHorizontal className="w-4 h-4" /> Filter
+        </button>
+      </header>
+
+      {/* Card stack */}
+      <div className="relative flex-1">
+        {/* Hintergrund-Karte (Vorschau der nächsten) */}
+        {next && (
+          <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
+            <div className="w-full max-w-sm h-[70vh] max-h-[640px] rounded-2xl glass opacity-40 scale-95" />
+          </div>
+        )}
+
+        {/* Aktuelle Karte */}
+        {showCard && (
+          <SwipeCard key={current!.id} game={current!} onSwipe={handleSwipe} />
+        )}
+
+        {/* Loading-Skeleton */}
+        {showSkeleton && <SkeletonCard />}
+
+        {/* Fehler */}
+        {showError && (
+          <EmptyState
+            title="Fehler beim Laden"
+            description={error ?? "Unbekannter API-Fehler."}
+            action={{ label: "Erneut versuchen", onClick: retry }}
+            action2={{ label: "Filter anpassen", onClick: () => setFilterOpen(true) }}
+          />
+        )}
+
+        {/* Leerer Stapel */}
+        {showExhausted && (
+          <EmptyState
+            title="Keine neuen Spiele mehr 🎮"
+            description="Alle passenden Spiele durchswipet. Filter anpassen oder später wiederkommen."
+            action={{ label: "Filter anpassen", onClick: () => setFilterOpen(true) }}
+          />
+        )}
+
+        {/* Idle (keine Karte, kein Status) */}
+        {showIdle && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <p className="text-zinc-500 text-sm">Bereit.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop-Action-Buttons */}
+      {showCard && (
+        <div className="absolute bottom-24 inset-x-0 flex items-center justify-center gap-6 z-10">
+          <ActionButton
+            label="Kenn ich schon"
+            color="red"
+            onClick={() => handleSwipe("right")}
+            symbol="✕"
+          />
+          <ActionButton
+            label="Merken"
+            color="green"
+            onClick={() => handleSwipe("left")}
+            symbol="♥"
+          />
+        </div>
+      )}
+
+      {/* Filter Sheet */}
+      <FilterPanel
+        open={filterOpen}
+        value={filters}
+        onChange={setFilters}
+        onClose={() => setFilterOpen(false)}
+      />
+    </div>
+  );
+}
+
+interface ActionButtonProps {
+  label: string;
+  color: "red" | "green";
+  onClick: () => void;
+  symbol: string;
+}
+
+function ActionButton({ label, color, onClick, symbol }: ActionButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      className={cn(
+        "w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold border-2 transition active:scale-90 select-none",
+        color === "red"
+          ? "border-neon-red text-neon-red hover:bg-neon-red/10"
+          : "border-neon-green text-neon-green hover:bg-neon-green/10"
+      )}
+    >
+      {symbol}
+    </button>
+  );
+}
