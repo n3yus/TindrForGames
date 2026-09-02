@@ -9,6 +9,9 @@ const GAME_CACHE_KEY = "tfg.gameCache";
 const PAGE_SIZE = 20;
 const PREFETCH_THRESHOLD = 3; // Wenn weniger als 3 Karten übrig → nachladen
 
+// Custom Event Name für Cloud-Sync
+const SYNC_EVENT = "tfg:sync";
+
 /** Liest den Game-Cache aus localStorage. */
 function readGameCache(): Record<number, Game> {
   try {
@@ -202,6 +205,9 @@ export function useGamePool(): UseGamePoolReturn {
         setSavedIds((prev) => (prev.includes(game.id) ? prev : [...prev, game.id]));
       }
       setIndex((i) => i + 1);
+
+      // Cloud-Sync Event auslösen (AuthContext hört mit)
+      window.dispatchEvent(new CustomEvent(SYNC_EVENT));
     },
     [index, pool, setSeenIds, setSavedIds]
   );
@@ -211,6 +217,7 @@ export function useGamePool(): UseGamePoolReturn {
   const removeFromSaved = useCallback(
     (id: number) => {
       setSavedIds((prev) => prev.filter((x) => x !== id));
+      window.dispatchEvent(new CustomEvent(SYNC_EVENT));
     },
     [setSavedIds]
   );
@@ -218,6 +225,7 @@ export function useGamePool(): UseGamePoolReturn {
   const removeFromSeen = useCallback(
     (id: number) => {
       setSeenIds((prev) => prev.filter((x) => x !== id));
+      window.dispatchEvent(new CustomEvent(SYNC_EVENT));
     },
     [setSeenIds]
   );
@@ -232,6 +240,7 @@ export function useGamePool(): UseGamePoolReturn {
     setFiltersState(DEFAULT_FILTERS);
     setSeenIds([]);
     setSavedIds([]);
+    window.dispatchEvent(new CustomEvent(SYNC_EVENT));
   }, [setSeenIds, setSavedIds]);
 
   const retry = useCallback(() => {

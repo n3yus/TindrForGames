@@ -101,5 +101,11 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), igdbProxyPlugin(clientId, clientSecret)],
+    server: {
+      headers: {
+        // Erlaubt Firebase Popup-Auth im Dev-Server
+        "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+      },
+    },
   };
 });

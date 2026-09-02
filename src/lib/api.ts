@@ -26,13 +26,6 @@ function getCredentials(): { clientId: string; clientSecret: string } {
   return { clientId, clientSecret };
 }
 
-function normalizeImageUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-  // IGDB liefert "//images.igdb.com/..." — mit Protokoll ergänzen
-  if (url.startsWith("//")) return `https:${url}`;
-  return url;
-}
-
 /**
  * Tauscht die IGDB-Größe im URL-Pfad aus. Default ist t_thumb (winzig).
  * Verfügbare Größen: t_thumb, t_cover_small, t_cover_big, t_720p, t_1080p

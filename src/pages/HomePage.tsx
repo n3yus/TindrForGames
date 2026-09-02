@@ -39,20 +39,15 @@ export function HomePage() {
       {/* API-Key Warnung */}
       <ApiKeyBanner />
 
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
-        <h1 className="text-xl font-extrabold tracking-tight">
-          <span className="bg-gradient-to-r from-neon-purple via-neon-pink to-neon-cyan bg-clip-text text-transparent">
-            TindrForGames
-          </span>
-        </h1>
+      {/* Filter Button (eigene Zeile, da Header jetzt in App.tsx ist) */}
+      <div className="flex items-center justify-end px-4 pt-2 pb-1 shrink-0">
         <button
           onClick={() => setFilterOpen(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border border-zinc-700 hover:border-neon-cyan hover:text-neon-cyan text-zinc-300"
         >
           <SlidersHorizontal className="w-4 h-4" /> Filter
         </button>
-      </header>
+      </div>
 
       {/* Karten-Bereich (flexibel, begrenzte Höhe) */}
       <div className="relative flex-1 min-h-0 flex items-center justify-center p-4">
