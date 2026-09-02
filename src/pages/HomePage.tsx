@@ -5,6 +5,7 @@ import { FilterPanel } from "../components/FilterPanel";
 import { SkeletonCard } from "../components/SkeletonCard";
 import { EmptyState } from "../components/EmptyState";
 import { ApiKeyBanner } from "../components/ApiKeyBanner";
+import { GameDetailModal } from "../components/GameDetailModal";
 import { SlidersHorizontal } from "lucide-react";
 import { cn } from "../lib/cn";
 
@@ -25,6 +26,7 @@ export function HomePage() {
   } = useGamePool();
 
   const [filterOpen, setFilterOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const showSkeleton = status === "loading" || (status === "idle" && !current);
   const showError = status === "error";
@@ -38,7 +40,7 @@ export function HomePage() {
       <ApiKeyBanner />
 
       {/* Header */}
-      <header className="flex items-center justify-between px-4 pt-4 pb-2">
+      <header className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
         <h1 className="text-xl font-extrabold tracking-tight">
           <span className="bg-gradient-to-r from-neon-purple via-neon-pink to-neon-cyan bg-clip-text text-transparent">
             TindrForGames
@@ -52,18 +54,24 @@ export function HomePage() {
         </button>
       </header>
 
-      {/* Card stack */}
-      <div className="relative flex-1">
-        {/* Hintergrund-Karte (Vorschau der nächsten) */}
+      {/* Karten-Bereich (flexibel, begrenzte Höhe) */}
+      <div className="relative flex-1 min-h-0 flex items-center justify-center p-4">
+        {/* Hintergrund-Karte (Vorschau der nächsten) — direkt hinter der Vorderkarte */}
         {next && (
-          <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
-            <div className="w-full max-w-sm h-[70vh] max-h-[640px] rounded-2xl glass opacity-40 scale-95" />
-          </div>
+          <div
+            className="absolute w-[calc(100%-2rem)] max-w-sm h-full max-h-[640px] rounded-2xl bg-zinc-900/60 border border-zinc-800/60 scale-95 opacity-50 pointer-events-none -z-10"
+            aria-hidden
+          />
         )}
 
-        {/* Aktuelle Karte */}
+        {/* Aktuelle Karte (Klick auf Cover → Detail) */}
         {showCard && (
-          <SwipeCard key={current!.id} game={current!} onSwipe={handleSwipe} />
+          <SwipeCard
+            key={current!.id}
+            game={current!}
+            onSwipe={handleSwipe}
+            onCoverClick={() => setDetailOpen(true)}
+          />
         )}
 
         {/* Loading-Skeleton */}
@@ -89,16 +97,12 @@ export function HomePage() {
         )}
 
         {/* Idle (keine Karte, kein Status) */}
-        {showIdle && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-zinc-500 text-sm">Bereit.</p>
-          </div>
-        )}
+        {showIdle && <p className="text-zinc-500 text-sm">Bereit.</p>}
       </div>
 
-      {/* Desktop-Action-Buttons */}
+      {/* Action-Buttons (immer unter der Karte, eigene Zeile) */}
       {showCard && (
-        <div className="absolute bottom-24 inset-x-0 flex items-center justify-center gap-6 z-10">
+        <div className="shrink-0 flex items-center justify-center gap-6 py-3">
           <ActionButton
             label="Kenn ich schon"
             color="red"
@@ -120,6 +124,12 @@ export function HomePage() {
         value={filters}
         onChange={setFilters}
         onClose={() => setFilterOpen(false)}
+      />
+
+      {/* Game Detail Modal */}
+      <GameDetailModal
+        game={detailOpen ? current : null}
+        onClose={() => setDetailOpen(false)}
       />
     </div>
   );

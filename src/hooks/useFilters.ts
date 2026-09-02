@@ -27,16 +27,18 @@ export function useFilterOptions() {
         if (gCached) {
           const { data, ts } = JSON.parse(gCached);
           if (Date.now() - ts < CACHE_TTL) {
-            setGenres(data);
+            setGenres(Array.isArray(data) ? data : []);
           } else {
             const fresh = await fetchGenres();
-            sessionStorage.setItem("tfg.genres", JSON.stringify({ data: fresh, ts: Date.now() }));
-            setGenres(fresh);
+            const valid = Array.isArray(fresh) ? fresh : [];
+            sessionStorage.setItem("tfg.genres", JSON.stringify({ data: valid, ts: Date.now() }));
+            setGenres(valid);
           }
         } else {
           const fresh = await fetchGenres();
-          sessionStorage.setItem("tfg.genres", JSON.stringify({ data: fresh, ts: Date.now() }));
-          setGenres(fresh);
+          const valid = Array.isArray(fresh) ? fresh : [];
+          sessionStorage.setItem("tfg.genres", JSON.stringify({ data: valid, ts: Date.now() }));
+          setGenres(valid);
         }
 
         // Platform-Cache prüfen
@@ -44,18 +46,21 @@ export function useFilterOptions() {
         if (pCached) {
           const { data, ts } = JSON.parse(pCached);
           if (Date.now() - ts < CACHE_TTL) {
-            setPlatforms(data);
+            setPlatforms(Array.isArray(data) ? data : []);
           } else {
             const fresh = await fetchPlatforms();
-            sessionStorage.setItem("tfg.platforms", JSON.stringify({ data: fresh, ts: Date.now() }));
-            setPlatforms(fresh);
+            const valid = Array.isArray(fresh) ? fresh : [];
+            sessionStorage.setItem("tfg.platforms", JSON.stringify({ data: valid, ts: Date.now() }));
+            setPlatforms(valid);
           }
         } else {
           const fresh = await fetchPlatforms();
-          sessionStorage.setItem("tfg.platforms", JSON.stringify({ data: fresh, ts: Date.now() }));
-          setPlatforms(fresh);
+          const valid = Array.isArray(fresh) ? fresh : [];
+          sessionStorage.setItem("tfg.platforms", JSON.stringify({ data: valid, ts: Date.now() }));
+          setPlatforms(valid);
         }
       } catch (e) {
+        console.error("[useFilterOptions] load error:", e);
         setError(e instanceof Error ? e.message : "Filter konnten nicht geladen werden.");
       } finally {
         setLoading(false);

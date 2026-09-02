@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocalStorage } from "./useLocalStorage";
-import { fetchGames, fetchNextPage, RawgApiError } from "../lib/api";
+import { fetchGames, fetchNextPage, IgdbApiError } from "../lib/api";
 import { DEFAULT_FILTERS, type Filters, type Game } from "../lib/types";
 
 const SEEN_KEY = "tfg.seenIds";
@@ -52,6 +52,8 @@ interface UseGamePoolReturn {
   handleSwipe: (direction: "left" | "right") => void;
   /** Entfernt ein Spiel aus der Merkliste (für SavedPage). */
   removeFromSaved: (id: number) => void;
+  /** Entfernt ein Spiel aus der Gesehen-Liste (für SeenPage). */
+  removeFromSeen: (id: number) => void;
   /** Manueller Retry. */
   retry: () => void;
   /** Vollständige Reset-Funktion (z. B. "Filter zurücksetzen"). */
@@ -61,7 +63,7 @@ interface UseGamePoolReturn {
 /**
  * Zentraler Game-Pool mit:
  *  - LocalStorage-Persistenz für gesehen/gemerkt
- *  - RAWG-Pagination im Hintergrund
+ *  - IGDB-Pagination im Hintergrund
  *  - Dedup gegen bereits gesehene/gemerkte Spiele
  *  - Filter-Wechsel setzt den Pool zurück (behält seen/saved)
  */
@@ -76,8 +78,8 @@ export function useGamePool(): UseGamePoolReturn {
   const [status, setStatus] = useState<LoadStatus>("idle");
   const [error, setError] = useState<string | null>(null);
 
-  // Pagination-Refs
-  const nextUrlRef = useRef<string | null>(null);
+  // Pagination-Refs (IGDB nutzt Offset statt URL)
+  const nextOffsetRef = useRef<number | null>(null);
   const loadingMoreRef = useRef(false);
   const inFlightRef = useRef(false);
   const filtersRef = useRef(filters);
@@ -103,18 +105,46 @@ export function useGamePool(): UseGamePoolReturn {
     setError(null);
     setPool([]);
     setIndex(0);
-    nextUrlRef.current = null;
+    nextOffsetRef.current = null;
     inFlightRef.current = true;
 
     try {
-      const result = await fetchGames(filtersRef.current, PAGE_SIZE, 1);
-      const { fresh } = filterFresh(result.games);
-      writeGameCache(result.games);
-      nextUrlRef.current = result.nextUrl;
-      setPool(fresh);
-      setStatus(result.hasMore ? "idle" : "exhausted");
+      // Mehrere Pages laden, bis wir frische Karten haben oder exhausted sind.
+      // Vermeidet "Bereit." direkt nach Reset, wenn die ersten 20 IGDB-Treffer
+      // bereits alle in seenIds sind.
+      const allFresh: Game[] = [];
+      let hasMore = true;
+      let offset = 0;
+      const MAX_PAGES = 3;
+
+      for (let i = 0; i < MAX_PAGES && hasMore; i++) {
+        const result = await fetchGames(filtersRef.current, PAGE_SIZE, offset);
+        writeGameCache(result.games);
+        const { fresh } = filterFresh(result.games);
+        allFresh.push(...fresh);
+        if (fresh.length > 0) {
+          // Genug frische Karten gefunden — hier aufhören.
+          hasMore = result.hasMore;
+          nextOffsetRef.current = result.nextOffset;
+          break;
+        }
+        // Alle Spiele der Page waren schon gesehen → nächste Page versuchen.
+        hasMore = result.hasMore;
+        if (hasMore) {
+          offset = result.nextOffset ?? offset + PAGE_SIZE;
+          nextOffsetRef.current = result.nextOffset;
+        }
+      }
+
+      setPool(allFresh);
+      setStatus(hasMore && nextOffsetRef.current !== null ? "idle" : "exhausted");
     } catch (e) {
-      const msg = e instanceof RawgApiError ? e.message : "Unbekannter API-Fehler";
+      const msg = e instanceof IgdbApiError
+        ? e.message
+        : e instanceof Error
+          ? `API-Fehler: ${e.message}`
+          : "Unbekannter API-Fehler";
+      console.error("[useGamePool] loadFirstPage error:", e);
       setError(msg);
       setStatus("error");
     } finally {
@@ -124,19 +154,19 @@ export function useGamePool(): UseGamePoolReturn {
 
   const loadMore = useCallback(async () => {
     if (loadingMoreRef.current || inFlightRef.current) return;
-    if (!nextUrlRef.current) return;
+    if (nextOffsetRef.current === null) return;
     if (pool.length - index > PREFETCH_THRESHOLD) return;
 
     loadingMoreRef.current = true;
     try {
-      const result = await fetchNextPage(nextUrlRef.current);
+      const result = await fetchNextPage(filtersRef.current, nextOffsetRef.current);
       const { fresh } = filterFresh(result.games);
       writeGameCache(result.games);
-      nextUrlRef.current = result.nextUrl;
+      nextOffsetRef.current = result.nextOffset;
       setPool((prev) => [...prev, ...fresh]);
       if (!result.hasMore) setStatus("exhausted");
     } catch (e) {
-      const msg = e instanceof RawgApiError ? e.message : "Nachladen fehlgeschlagen";
+      const msg = e instanceof IgdbApiError ? e.message : "Nachladen fehlgeschlagen";
       setError(msg);
       setStatus("error");
     } finally {
@@ -185,6 +215,13 @@ export function useGamePool(): UseGamePoolReturn {
     [setSavedIds]
   );
 
+  const removeFromSeen = useCallback(
+    (id: number) => {
+      setSeenIds((prev) => prev.filter((x) => x !== id));
+    },
+    [setSeenIds]
+  );
+
   // --- Filter setzen + Reset --------------------------------------------
 
   const setFilters = useCallback((f: Filters) => {
@@ -217,6 +254,7 @@ export function useGamePool(): UseGamePoolReturn {
     savedIds,
     handleSwipe,
     removeFromSaved,
+    removeFromSeen,
     retry,
     resetAll,
   };

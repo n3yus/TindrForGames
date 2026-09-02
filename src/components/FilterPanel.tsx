@@ -188,7 +188,7 @@ export function FilterPanel({ open, value, onChange, onClose }: FilterPanelProps
                   <div className="text-neon-red text-sm">Fehler: {error}</div>
                 ) : (
                   <div className="flex flex-wrap gap-1.5">
-                    {genres.map((g) => {
+                    {(genres ?? []).map((g) => {
                       const active = draft.genreIds.includes(g.id);
                       return (
                         <button
@@ -221,7 +221,7 @@ export function FilterPanel({ open, value, onChange, onClose }: FilterPanelProps
                   <div className="text-zinc-500 text-sm">Lade …</div>
                 ) : (
                   <div className="flex flex-wrap gap-1.5">
-                    {platforms.map((p) => {
+                    {(platforms ?? []).map((p) => {
                       const active = draft.platformIds.includes(p.id);
                       return (
                         <button

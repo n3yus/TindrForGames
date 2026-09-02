@@ -1,22 +1,44 @@
+import { useState } from "react";
 import { Heart, X, Calendar, Star, Gamepad2 } from "lucide-react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { GameDetailModal } from "../components/GameDetailModal";
 import type { Game } from "../lib/types";
 
 const SAVED_KEY = "tfg.savedIds";
 const GAME_CACHE_KEY = "tfg.gameCache";
 
 /**
+ * Upgraded eine IGDB-Cover-URL auf eine HD-Version.
+ * T_thumb (90x128) ist sehr unscharf — wir wollen t_720p für beste Qualität.
+ */
+function upgradeCover(url: string | null | undefined): string | null {
+  if (!url) return null;
+  return url.replace(
+    /\/(t_thumb|t_cover_small|t_cover_big|t_720p|t_1080p)\//,
+    "/t_720p/"
+  );
+}
+
+/**
  * Zeigt die gemerkten Spiele.
  * Die Detail-Infos kommen aus dem Game-Cache, den useGamePool beim
  * Laden der Karten befüllt. So sehen wir auch Titel/Cover, ohne die
- * RAWG API erneut anzufragen.
+ * IGDB API erneut anzufragen.
  */
 export function SavedPage() {
   const [savedIds, setSavedIds] = useLocalStorage<number[]>(SAVED_KEY, []);
   const [gameCache] = useLocalStorage<Record<number, Game>>(GAME_CACHE_KEY, {});
+  const [detailGame, setDetailGame] = useState<Game | null>(null);
 
   const remove = (id: number) =>
     setSavedIds((prev) => prev.filter((x) => x !== id));
+
+  const removeFromDetail = () => {
+    if (detailGame) {
+      setSavedIds((prev) => prev.filter((x) => x !== detailGame.id));
+      setDetailGame(null);
+    }
+  };
 
   return (
     <div className="min-h-full px-4 pt-4 pb-24">
@@ -36,14 +58,20 @@ export function SavedPage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {savedIds.map((id) => {
             const game = gameCache[id];
+            const coverUrl = upgradeCover(game?.cover);
             return (
-              <div key={id} className="relative rounded-xl overflow-hidden glass">
+              <div
+                key={id}
+                className="relative rounded-xl overflow-hidden glass cursor-pointer hover:ring-2 hover:ring-neon-pink/40 transition"
+                onClick={() => game && setDetailGame(game)}
+              >
                 <div className="h-36 bg-zinc-800 relative">
-                  {game?.cover ? (
+                  {coverUrl ? (
                     <img
-                      src={game.cover}
-                      alt={game.title}
+                      src={coverUrl}
+                      alt={game?.title ?? `Spiel #${id}`}
                       className="w-full h-full object-cover"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-zinc-600 px-2 text-center">
@@ -54,7 +82,10 @@ export function SavedPage() {
                 </div>
 
                 <button
-                  onClick={() => remove(id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    remove(id);
+                  }}
                   aria-label="Aus Merkliste entfernen"
                   className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center text-zinc-400 hover:text-neon-red hover:bg-black/80 transition"
                 >
@@ -94,6 +125,13 @@ export function SavedPage() {
           })}
         </div>
       )}
+
+      {/* Game Detail Modal (mit "Aus Merkliste entfernen"-Action) */}
+      <GameDetailModal
+        game={detailGame}
+        onClose={() => setDetailGame(null)}
+        onSwipe={(_dir) => removeFromDetail()}
+      />
     </div>
   );
 }

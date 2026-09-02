@@ -1,35 +1,46 @@
-// RAWG API Response Types + abgeleitete UI-Typen
+// IGDB API Response Types + abgeleitete UI-Typen
 
-export interface RawgPlatformSlot {
-  platform: { id: number; name: string; slug: string };
-}
-
-export interface RawgGenre {
+// IGDB Platform
+export interface IgdbPlatform {
   id: number;
   name: string;
   slug: string;
 }
 
-export interface RawgGame {
+// IGDB Genre (hier "Game Mode" oder Category-Feld)
+export interface IgdbGenre {
+  id: number;
+  name: string;
+}
+
+// Vollständiges IGDB Game-Objekt (von /games mit expand)
+export interface IgdbGame {
   id: number;
   name: string;
   slug: string;
-  released: string | null;
-  background_image: string | null;
-  rating: number;          // 0-5 (RAWG)
-  rating_top: number;
-  metacritic: number | null;
-  playtime: number;        // Stunden
-  genres: RawgGenre[];
-  platforms: RawgPlatformSlot[];
-  short_screenshots?: { id: number; image: string }[];
-}
-
-export interface RawgListResponse<T> {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: T[];
+  first_release_date: number | null; // Unix timestamp in Sekunden
+  cover: {
+    id: number;
+    url: string;                 // "//images.igdb.com/..." → muss mit https:// ergänzt werden
+  } | null;
+  rating: number;               // 0-100 (IGDB)
+  rating_count: number;
+  aggregated_rating: number | null;
+  aggregated_rating_count: number | null;
+  genres: IgdbGenre[];
+  platforms: IgdbPlatform[];
+  involved_companies?: {
+    id: number;
+    company: { id: number; name: string };
+    developer: boolean;
+    publisher: boolean;
+  }[];
+  screenshots?: {
+    id: number;
+    url: string;
+  }[];
+  category: number;             // 0=main_game, 1=dlc, 2=expansion, etc.
+  game_type?: number;           // 0=game, 1=expansion, 2=bundle, etc.
 }
 
 // Vereinfachte Game-Form, mit der die UI arbeitet
@@ -39,9 +50,9 @@ export interface Game {
   cover: string | null;
   released: string | null;     // YYYY-MM-DD
   year: number | null;
-  rating: number;              // 0-5
+  rating: number;             // 0-5 (umgerechnet von IGDB 0-100)
   metacritic: number | null;
-  playtime: number;            // Stunden
+  playtime: number;           // Stunden (umgerechnet von Sekunden)
   genres: string[];
   platforms: string[];
   screenshots: string[];

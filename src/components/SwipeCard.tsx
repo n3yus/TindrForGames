@@ -7,6 +7,7 @@ import { cn } from "../lib/cn";
 interface SwipeCardProps {
   game: Game;
   onSwipe: (direction: "left" | "right") => void;
+  onCoverClick?: () => void;
   /** Pixel, ab denen ein Swipe zählt (Default 75). */
   threshold?: number;
 }
@@ -17,7 +18,7 @@ interface SwipeCardProps {
  * - Linkes/rechtes Overlay fadet je nach Richtung ein
  * - Beim Loslassen: Animation raus aus dem Bildschirm, dann onSwipe-Callback
  */
-export function SwipeCard({ game, onSwipe, threshold = 75 }: SwipeCardProps) {
+export function SwipeCard({ game, onSwipe, onCoverClick, threshold = 75 }: SwipeCardProps) {
   const x = useMotionValue(0);
   const [exiting, setExiting] = useState<null | "left" | "right">(null);
 
@@ -48,7 +49,7 @@ export function SwipeCard({ game, onSwipe, threshold = 75 }: SwipeCardProps) {
 
   return (
     <motion.div
-      className="absolute inset-0 flex items-center justify-center p-4 select-none cursor-grab active:cursor-grabbing"
+      className="relative w-full max-w-sm h-full max-h-[640px] flex items-center justify-center select-none cursor-grab active:cursor-grabbing"
       drag={exiting ? false : "x"}
       dragConstraints={{ left: 0, right: 0 }}
       dragElastic={0.7}
@@ -64,9 +65,12 @@ export function SwipeCard({ game, onSwipe, threshold = 75 }: SwipeCardProps) {
       }
       onAnimationComplete={handleExitComplete}
     >
-      <article className="relative w-full max-w-sm h-[70vh] max-h-[640px] rounded-2xl overflow-hidden glass shadow-2xl shadow-neon-purple/10">
-        {/* Cover */}
-        <div className="relative h-2/3 w-full bg-zinc-800">
+      <article className="relative w-full h-full rounded-2xl overflow-hidden glass shadow-2xl shadow-neon-purple/10">
+        {/* Cover (klickbar → Detail) */}
+        <div
+          className={`relative h-2/3 w-full bg-zinc-800 ${onCoverClick ? "cursor-pointer" : ""}`}
+          onClick={onCoverClick}
+        >
           {game.cover ? (
             <img
               src={game.cover}
@@ -165,7 +169,7 @@ export function SwipeCard({ game, onSwipe, threshold = 75 }: SwipeCardProps) {
 
           {game.platforms.length > 0 && (
             <div className="mt-auto flex items-center gap-1.5 text-xs text-zinc-400">
-              <Gamepad2 className="w-3.5 h-3.5" />
+              <Gamepad2 className="w-3.5 h-3.5 shrink-0" />
               <span className="line-clamp-1">{game.platforms.slice(0, 4).join(" · ")}</span>
             </div>
           )}

@@ -5,15 +5,19 @@ interface ApiKeyBannerProps {
 }
 
 /**
- * Zeigt einen Hinweis, wenn VITE_RAWG_API_KEY nicht gesetzt ist.
+ * Zeigt einen Hinweis, wenn die Twitch-Credentials für IGDB nicht gesetzt sind.
  * Der Nutzer soll die .env-Datei anlegen.
  */
 export function ApiKeyBanner({
-  message = "RAWG API-Key fehlt. Kopiere .env.example nach .env und trage deinen Key ein.",
+  message = "Twitch-Credentials fehlen. Kopiere .env.example nach .env und trage VITE_TWITCH_CLIENT_ID und VITE_TWITCH_CLIENT_SECRET ein.",
 }: ApiKeyBannerProps) {
+  const clientId = import.meta.env.VITE_TWITCH_CLIENT_ID;
+  const clientSecret = import.meta.env.VITE_TWITCH_CLIENT_SECRET;
   const hasKey =
-    import.meta.env.VITE_RAWG_API_KEY &&
-    import.meta.env.VITE_RAWG_API_KEY !== "rawg-your-api-key-here";
+    clientId &&
+    clientSecret &&
+    clientId !== "dein-client-id" &&
+    clientSecret !== "dein-client-secret";
 
   if (hasKey) return null;
 
@@ -26,12 +30,12 @@ export function ApiKeyBanner({
       <div className="flex-1 min-w-0">
         <p className="text-sm text-yellow-200 font-medium">{message}</p>
         <a
-          href="https://rawg.io/apidocs"
+          href="https://dev.twitch.tv/console/apps"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-xs text-yellow-300 underline hover:text-yellow-100 mt-1"
         >
-          API-Key holen <ExternalLink className="w-3 h-3" />
+          Credentials holen <ExternalLink className="w-3 h-3" />
         </a>
         <p className="text-[11px] text-yellow-500/70 mt-1 font-mono">
           cp .env.example .env
