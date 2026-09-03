@@ -106,6 +106,7 @@ export default defineConfig(({ mode }) => {
         // Erlaubt Firebase Popup-Auth im Dev-Server
         "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
       },
+      port: 5515, // Fester Port für Pterodactyl
     },
   };
 });
