@@ -1,10 +1,8 @@
 import type { Filters, Game } from "./types";
 import type { IgdbGame, IgdbGenre, IgdbPlatform } from "./types";
 
-// Wir gehen durch den Vite-Dev-Proxy (vite.config.ts), um CORS zu umgehen.
-// Im Browser: fetch("/igdb/...") → Vite-Proxy → https://api.igdb.com/v4/...
-// In Produktion: Hier eigene Backend-URL einsetzen oder per VITE_IGDB_BASE_URL überschreiben.
-const IGDB_BASE = import.meta.env.VITE_IGDB_BASE_URL || "/igdb";
+// Direkte IGDB-API (GitHub Pages hat keinen lokalen Proxy)
+const IGDB_BASE = "https://api.igdb.com/v4";
 
 export class IgdbApiError extends Error {
   status?: number;
@@ -24,6 +22,40 @@ function getCredentials(): { clientId: string; clientSecret: string } {
     );
   }
   return { clientId, clientSecret };
+}
+
+// Token direkt von Twitch holen (client_secret ist im Build eingebaut)
+let cachedToken: string | null = null;
+let tokenExpiresAt = 0;
+
+async function getTwitchToken(): Promise<string> {
+  const now = Date.now();
+  if (cachedToken && tokenExpiresAt > now + 300_000) {
+    return cachedToken;
+  }
+
+  const { clientId, clientSecret } = getCredentials();
+  const body = new URLSearchParams({
+    client_id: clientId,
+    client_secret: clientSecret,
+    grant_type: "client_credentials",
+  });
+
+  const res = await fetch("https://id.twitch.tv/oauth2/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new IgdbApiError(`Twitch Token fehlgeschlagen: ${text}`, res.status);
+  }
+
+  const data = (await res.json()) as { access_token: string; expires_in: number };
+  cachedToken = data.access_token;
+  tokenExpiresAt = now + data.expires_in * 1000;
+  return data.access_token;
 }
 
 /**
@@ -120,12 +152,15 @@ async function igdbRequest<T>(
   endpoint: string,
   body: string
 ): Promise<IgdbListResponse<T>> {
-  getCredentials();
+  const token = await getTwitchToken();
+  const { clientId } = getCredentials();
 
   const res = await fetch(`${IGDB_BASE}${endpoint}`, {
     method: "POST",
     headers: {
       "Content-Type": "text/plain",
+      "Client-ID": clientId,
+      Authorization: `Bearer ${token}`,
     },
     body,
   });
